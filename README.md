@@ -133,6 +133,24 @@ python -m venv ~/.local/share/glance
 ~/.local/share/glance/bin/glancectl setup
 ```
 
+**If your Omarchy shell runs from a checkout** (`~/.local/share/omarchy`
+rather than the `/usr/share/omarchy` package), `omarchy plugin add --enable`
+clones the plugin and then stops with `omarchy-shell is not running`, because
+`omarchy` looks for the shell under `$OMARCHY_PATH`, which defaults to the
+package. Point it at the checkout first, and enable separately so a shell that
+is not up yet does not stop the rest:
+
+```bash
+export OMARCHY_PATH=~/.local/share/omarchy
+omarchy plugin add https://github.com/ayandexyz/omarchy-glance.git
+omarchy plugin enable io.github.ayandexyz.glance   # or after omarchy-restart-shell
+```
+
+The lock installs into a venv that is not on your PATH, so `glancectl` at a
+prompt is `~/.local/share/glance/bin/glancectl` unless you link it:
+`ln -s ~/.local/share/glance/bin/glancectl ~/.local/bin/glancectl` (glanced
+releases with the "link glancectl into ~/.local/bin" change do this in `setup`).
+
 Nothing to configure afterwards: `~/.local/share/glance/bin/glancectl` is the
 **only** location the panel resolves on its own, so it finds that venv and
 nothing else. **glancectl path** in the settings is how you point it anywhere
@@ -161,7 +179,11 @@ terminal instead.
 package this daemon executes, so the code behind `glancectl` cannot drift
 between two installs of the same documented commit. It is generated for
 CPython 3.14 on x86_64 Linux, which is what Omarchy ships; another interpreter
-or architecture resolves different wheels and needs it regenerated. And it is
+or architecture resolves different wheels and needs it regenerated. On
+aarch64 (Apple Silicon under Asahi) this lock fails its very first compiled
+package with a hash mismatch: the hash it expects is the x86_64 wheel's. Locks
+written with glance-linux's `tools/mklock.py` carry both architectures, with
+MediaPipe (which has no Linux aarch64 wheel) marked x86_64-only. And it is
 a pin, not a provenance claim: it says every install gets the same bytes, not
 that those bytes were audited.
 
